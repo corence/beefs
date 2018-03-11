@@ -4,19 +4,14 @@
 import Test.Hspec
 import Test.QuickCheck
 import qualified RTree
-import RTree(RTree)
+import RTree(RTree(..))
 import Data.Function((&))
 import qualified Volume
 import Volume(Volume)
 import qualified Interval
 import Interval(Interval(..))
 import System.Random
-
-data Rect = Rect (Interval Double) (Interval Double) deriving (Show)
-
-instance Volume Rect where
-  intersects (Rect x1 y1) (Rect x2 y2) = Interval.intersects x1 x2 && Interval.intersects y1 y2
-  merge (Rect x1 y1) (Rect x2 y2) = Rect (Interval.merge x1 y1) (Interval.merge x2 y2)
+import Rect
 
 instance Arbitrary (Interval Double) where
   arbitrary = do
@@ -36,3 +31,17 @@ main = hspec $ do
   describe "Achikaps" $ do
     it "contains n elements after inserting n things" $ do
       property $ \xs -> RTree.size (makeTree xs) `shouldBe` length xs
+    it "always makes sure parent node volumes contain child node volumes" $ do
+      property $ \xs -> rTreeDescendantsAreContained (makeTree xs) `shouldBe` True
+
+rTreeDescendantsAreContained :: Volume k => RTree k v -> Bool
+rTreeDescendantsAreContained NoRTree = True
+rTreeDescendantsAreContained (RLeaf _ _) = True
+rTreeDescendantsAreContained (RNode vol _ childs)
+  =  all (Volume.contains vol . getVolume) childs
+  && all rTreeDescendantsAreContained childs
+
+getVolume :: RTree k v -> k
+getVolume NoRTree = error "hey wait what but that doesn't even"
+getVolume (RLeaf key _) = key
+getVolume (RNode key _ _) = key

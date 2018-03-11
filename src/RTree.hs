@@ -6,8 +6,6 @@ import Volume(Volume)
 
 import Data.Function((&))
 
-type NodeTransition k v a = RTree k v -> (a, RTree k v)
-
 data RTree k v
   = NoRTree
   | RNode {
@@ -38,9 +36,9 @@ insert maxChilds leaf@(volume, value) node@(RNode _ _ tChilds)
   where (firstMatchingChild, unmatchingChilds) = removeFirstMatch (Volume.intersects volume . nVolume) tChilds
         (selectedChild, otherChilds) = maybe (head tChilds, tail tChilds) (\target -> (target, unmatchingChilds)) firstMatchingChild
         insertChild (RNode pVolume pNumLeafs pChilds) newNode@(RNode cVolume _ _)
-          = RNode (Volume.merge pVolume cVolume) (pNumLeafs + 1) (sortedInsertOn nNumLeafs newNode pChilds)
+          = RNode (Volume.merge pVolume cVolume) (pNumLeafs + 1) (sortedInsertOn RTree.size newNode pChilds)
         insertChild (RNode pVolume pNumLeafs pChilds) newLeaf@(RLeaf lVolume _)
-          = RNode (Volume.merge pVolume lVolume) (pNumLeafs + 1) (sortedInsertOn nNumLeafs newLeaf pChilds)
+          = RNode (Volume.merge pVolume lVolume) (pNumLeafs + 1) (sortedInsertOn RTree.size newLeaf pChilds)
         insertChild _ _ = error "what? can't insertChild into that"
 
 removeFirstMatch :: (a -> Bool) -> [a] -> (Maybe a, [a])
@@ -71,3 +69,10 @@ size :: RTree k v -> Int
 size NoRTree = 0
 size (RLeaf _ _) = 1
 size (RNode _ numLeafs _) = numLeafs
+
+dump :: (Show k, Show v) => Int -> RTree k v -> [String]
+dump indent NoRTree = [replicate indent ' ' ++ "<>"]
+dump indent (RLeaf key value) = [replicate indent ' ' ++ "<" ++ show key ++ ", " ++ show value ++ ">"]
+dump indent (RNode key _ childs) = parentString : childStrings
+  where parentString = replicate indent ' ' ++ "<" ++ show key ++ ">"
+        childStrings = concatMap (dump (indent + 2)) childs

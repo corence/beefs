@@ -27,15 +27,15 @@ data Key
   | ItemInInventory ItemType
   deriving (Ord, Eq)
 
-data AchiTask = AchiTask {
+newtype AchiTask = AchiTask {
   name :: Text
   -- prereqs :: Ord ord => Map Key (Interval ord),
   -- ‎outcomes :: Map Key Value, -- these will actually be stored as intervals so let's encapsulate it with a setter
   -- actually, we don't store these anymore... now they're just a key in an RTree
   }
 
-data Value = IntValue Int deriving (Show, Ord, Eq)
-data MapVolume = MapVolume (Map Key (Interval Value))
+data Value = IntValue Int | DoubleValue Double deriving (Show, Ord, Eq)
+newtype MapVolume = MapVolume (Map Key (Interval Value))
 
 instance Volume MapVolume where
   merge (MapVolume vol1) (MapVolume vol2) = Map.unionWith Interval.merge vol1 vol2 & MapVolume
@@ -43,3 +43,5 @@ instance Volume MapVolume where
     = Map.intersectionWith Interval.intersects vol1 vol2 -- for all keys that exist in both Maps, create a new Map that records whether there's an intersection between the Intervals at that key
     & Map.toList -- make it a list
     & all snd -- make sure that every value from that intersected map is True
+  contains m1@(MapVolume vol1) m2@(MapVolume vol2)
+    = intersects m1 m2 && null (Map.difference vol2 vol1)

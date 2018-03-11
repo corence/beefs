@@ -66,3 +66,8 @@ query volume (RNode tVolume _ tChilds)
   = if Volume.intersects volume tVolume
       then concatMap (query volume) tChilds
       else []
+
+size :: RTree k v -> Int
+size NoRTree = 0
+size (RLeaf _ _) = 1
+size (RNode _ numLeafs _) = numLeafs

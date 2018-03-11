@@ -1,7 +1,7 @@
 
 module Interval where
 
-data Interval a = Interval a a
+data Interval a = Interval a a deriving (Show)
 
 unit :: a -> Interval a
 unit a = Interval a a

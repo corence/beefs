@@ -16,7 +16,7 @@ data ItemType
   | Metal
   | Debris
   | Gum
-  deriving (Ord, Eq)
+  deriving (Show, Ord, Eq)
 
 data Key
   = X
@@ -25,7 +25,7 @@ data Key
   | NumSlotsAvailable
   | ItemAvailable ItemType
   | ItemInInventory ItemType
-  deriving (Ord, Eq)
+  deriving (Show, Ord, Eq)
 
 newtype AchiTask = AchiTask {
   name :: Text

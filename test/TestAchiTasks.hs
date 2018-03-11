@@ -46,5 +46,5 @@ main :: IO ()
 main = hspec $ do
   describe "Achikaps" $ do
     it "matches against subsets of the tasks" $ do
-      let q = makeVolume [(ItemAvailable Meat, Interval (IntValue 1) (IntValue maxBound))]
-      length (RTree.query q tasks) `shouldBe` 2
+      let q = makeVolume [(ItemAvailable Metal, Interval (IntValue 1) (IntValue maxBound))]
+      length (RTree.query q tasks) `shouldBe` 1

@@ -8,7 +8,6 @@ import Volume
 import Data.Text(Text)
 import qualified Interval
 import Interval(Interval)
-import Value(Value)
 
 data ItemType
   = Food
@@ -30,11 +29,12 @@ data Key
 
 data AchiTask = AchiTask {
   name :: Text
-  -- prereqs :: Map Key (Interval Value),
+  -- prereqs :: Ord ord => Map Key (Interval ord),
   -- ‎outcomes :: Map Key Value, -- these will actually be stored as intervals so let's encapsulate it with a setter
   -- actually, we don't store these anymore... now they're just a key in an RTree
   }
 
+data Value = IntValue Int deriving (Show, Ord, Eq)
 data MapVolume = MapVolume (Map Key (Interval Value))
 
 instance Volume MapVolume where

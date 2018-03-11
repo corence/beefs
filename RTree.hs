@@ -1,54 +1,68 @@
 
 module RTree where
 
-import qualified Zone as Zone
-import Zone(Pos(..), Zone(..))
+import qualified Volume
+import Volume(Volume)
 
 import Data.Function((&))
-import Data.Maybe(isJust, fromJust)
 
-data RTree a = NoRTree | RTreeNode {
-  nPos :: Pos,
-  nValue :: a,
-  nZone :: Zone,
-  nNumValues :: Int,
-  nChilds :: [RTree a] -- sorted by nNumValues ascending
-  }
+type NodeTransition k v a = RTree k v -> (a, RTree k v)
 
--- inserting: how to choose a destination child
--- 1) from the childs that contain the pos, pick the one with the least values
--- 2) if this node can take another child, do that
--- 3) otherwise, feed it into the first child
-insert :: Int -> Pos -> a -> RTree a -> RTree a
-insert _ pos value NoRTree = RTreeNode pos value (Zone.unitZone pos) 1 []
-insert maxChilds pos value tree
-  | isJust targetChild = insertInto (fromJust targetChild) & insertInto (treeWithChilds otherChilds)
-  | length tChilds < maxChilds = insertInto tree
-  | otherwise = insert maxChilds pos value (head tChilds) & insertInto (treeWithChilds (tail tChilds))
-  where (RTreeNode tPos tValue tZone tNumValues tChilds) = tree
-        (targetChild, otherChilds) = removeFirstMatch (\node -> Zone.contains pos (nZone node)) tChilds
-        treeWithChilds = RTreeNode tPos tValue tZone tNumValues -- note: we don't shrink the parent rectangle or tNumValues, because they're about to be restored anyway
-        newNode = RTreeNode pos value (Zone.unitZone pos) 1 []
-        insertInto (RTreeNode pPos pValue pZone pNumValues pChilds)
-          = RTreeNode pPos pValue (Zone.extend pos pZone) (pNumValues + 1) (sortedInsert newNode pChilds)
+data RTree k v
+  = NoRTree
+  | RNode {
+    nVolume :: k,
+    nNumLeafs :: Int,
+    nChilds :: [RTree k v] -- sorted by nNumLeafs ascending
+    }
+  | RLeaf {
+    nVolume :: k,
+    nValue :: v
+    }
 
-removeFirstMatch :: (a -> Bool) -> [a] -> (a, [a])
+-- inserting:
+-- 1) navigate past all of the appropriate ancestors, keeping them in the call stack
+-- 1a) if this node can take a child, add one more
+-- 1b) from the childs that contain the pos, pick the one with the least values
+-- 1c) otherwise, feed it into the first child
+-- 2) create the leaf
+-- 3) for each ancestor, return a new copy of itself holding the new value
+insert :: Volume k => Int -> (k, v) -> RTree k v -> RTree k v
+insert _ (volume, value) NoRTree = RLeaf volume value
+insert _ (volume, value) tLeaf@(RLeaf tVolume _)
+  = RNode (Volume.merge volume tVolume) 2 [tLeaf, RLeaf volume value]
+insert maxChilds leaf@(volume, value) node@(RNode _ _ tChilds)
+  = if length tChilds < maxChilds
+      then insertChild node (RLeaf volume value)
+      else insert maxChilds leaf selectedChild & insertChild (node { nChilds = otherChilds })
+  where (firstMatchingChild, unmatchingChilds) = removeFirstMatch (Volume.intersects volume . nVolume) tChilds
+        (selectedChild, otherChilds) = maybe (head tChilds, tail tChilds) (\target -> (target, unmatchingChilds)) firstMatchingChild
+        insertChild (RNode pVolume pNumLeafs pChilds) newNode@(RNode cVolume _ _)
+          = RNode (Volume.merge pVolume cVolume) (pNumLeafs + 1) (sortedInsertOn nNumLeafs newNode pChilds)
+        insertChild (RNode pVolume pNumLeafs pChilds) newLeaf@(RLeaf lVolume _)
+          = RNode (Volume.merge pVolume lVolume) (pNumLeafs + 1) (sortedInsertOn nNumLeafs newLeaf pChilds)
+        insertChild _ _ = error "what? can't insertChild into that"
+
+removeFirstMatch :: (a -> Bool) -> [a] -> (Maybe a, [a])
 removeFirstMatch predicate
   = foldr removeNextMatch (Nothing, [])
   where removeNextMatch a (Just match, as) = (Just match, a : as)
         removeNextMatch a (Nothing, as) = if predicate a then (Just a, as) else (Nothing, a : as)
 
-sortedInsert :: Ord a => a -> [a] -> [a]
-sortedInsert a [] = [a]
-sortedInsert a (b:bs)
-  = if a <= b
+sortedInsertOn :: Ord a => (x -> a) -> x -> [x] -> [x]
+sortedInsertOn _ a [] = [a]
+sortedInsertOn func a (b:bs)
+  = if func a <= func b
       then a : b : bs
-      else b : sortedInsert a bs
+      else b : sortedInsertOn func a bs
 
-query :: Zone -> RTree a -> [a]
+query :: Volume k => k -> RTree k v -> [(k, v)]
 query _ NoRTree = []
-query zone tree
-  = if Zone.overlaps zone tZone
-      then tValue : concatMap (query zone) tChilds
+query volume (RLeaf lVolume lValue)
+  = if Volume.intersects volume lVolume
+      then [(lVolume, lValue)]
       else []
-  where (RTreeNode tPos tValue tZone tNumValues tChilds) = tree
+query volume (RNode tVolume _ tChilds)
+  = if Volume.intersects volume tVolume
+      then concatMap (query volume) tChilds
+      else []

@@ -1,34 +1,16 @@
 
 module Interval where
 
-import qualified Data.Text as Text
-import Data.Text(Text)
+data Interval a = Interval a a
 
-data Interval = IntInterval Int Int | Doublterval Double Double | Texterval Text Text
+unit :: a -> Interval a
+unit a = Interval a a
 
-pointInt :: Int -> Interval
-pointInt i = IntInterval i i
+interval :: Ord a => a -> a -> Interval a
+interval a0 a1 = if a0 <= a1 then Interval a0 a1 else error "but this interval is bass-ackwards"
 
-pointDouble :: Double -> Interval
-pointDouble d = Doublterval d d
+merge :: Ord a => Interval a -> Interval a -> Interval a
+merge (Interval a0 a1) (Interval b0 b1) = Interval (min a0 b0) (max a1 b1)
 
-pointText :: Text -> Interval
-pointText t = Texterval t t
-
-overlaps :: Interval -> Interval -> Bool
-overlaps (IntInterval a0 a1) (IntInterval b0 b1) = tupleOverlaps (a0, a1) (b0, b1)
-overlaps (Doublterval a0 a1) (Doublterval b0 b1) = tupleOverlaps (a0, a1) (b0, b1)
-overlaps (Texterval a0 a1) (Texterval b0 b1) = tupleOverlaps (a0, a1) (b0, b1)
-
-tupleOverlaps :: Ord a => (a, a) -> (a, a) -> Bool
-tupleOverlaps (a0, a1) (b0, b1)
-  | a0 > b1 = False
-  | b0 > a1 = False
-  | a1 < b0 = False
-  | b1 < a0 = False
-  | otherwise = True
-
-merge :: Interval -> Interval -> Interval
-merge (IntInterval a1 a2) (IntInterval b1 b2) = IntInterval (min a1 b1) (max a2 b2)
-merge (Doublterval a1 a2) (Doublterval b1 b2) = Doublterval (min a1 b1) (max a2 b2)
-merge (Texterval a1 a2) (Texterval b1 b2) = Texterval (min a1 b1) (max a2 b2)
+intersects :: Ord a => Interval a -> Interval a -> Bool
+intersects (Interval a0 a1) (Interval b0 b1) = b1 >= a0 && b0 <= a1

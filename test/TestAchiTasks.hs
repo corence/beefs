@@ -12,14 +12,16 @@ import Data.Bifunctor
 import qualified Interval
 import Interval(Interval(..))
 import Data.Tuple(swap)
+import Data.Monoid
+import qualified Data.Text as Text
 
-convertPearlToMetal :: (AchiTask, MapVolume)
-convertPearlToMetal = (AchiTask "convert pearl to metal",
-  makeUnitVolume [
-  (X, 5),
-  (Y, 5),
-  (ItemAvailable Pearl, -1),
-  (ItemAvailable Metal, 1)])
+convertAtoB :: [ItemType] -> [ItemType] -> (Int, Int) -> (AchiTask, MapVolume)
+convertAtoB sourceTypes destTypes (x, y)
+  = (AchiTask (Text.pack $ "convert " <> show sourceTypes <> " to " <> show destTypes),
+     makeUnitVolume $
+       [(X, x), (Y, y)]
+       ++ map (\sourceType -> (ItemAvailable sourceType, -1)) sourceTypes
+       ++ map (\destType -> (ItemAvailable destType, 1)) destTypes)
 
 makeUnitVolume :: [(Key, Int)] -> MapVolume
 makeUnitVolume = makeVolume . map (second (Interval.unit . IntValue))
@@ -27,20 +29,13 @@ makeUnitVolume = makeVolume . map (second (Interval.unit . IntValue))
 makeVolume :: [(Key, Interval Value)] -> MapVolume
 makeVolume = MapVolume . Map.fromList
 
-cookMeat :: (AchiTask, MapVolume)
-cookMeat = (AchiTask "cook meat",
-  makeUnitVolume [
-    (ItemAvailable Meat, -1),
-    (ItemAvailable Metal, -1),
-    (ItemAvailable Food, 1)])
-
 addTask :: (AchiTask, MapVolume) -> Achikaps.Tasks -> Achikaps.Tasks
 addTask = RTree.insert 3 . swap
 
 tasks :: RTree MapVolume AchiTask
 tasks = RTree.NoRTree
-  & addTask convertPearlToMetal
-  & addTask cookMeat
+  & addTask (convertAtoB [Pearl] [Metal] (5, 5))
+  & addTask (convertAtoB [Meat, Metal] [Food] (9, 9))
 
 main :: IO ()
 main = hspec $ do

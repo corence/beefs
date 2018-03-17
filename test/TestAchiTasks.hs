@@ -35,14 +35,21 @@ convertInv sourceTypes destTypes
 pickup :: ItemType -> (Int, Int) -> (MapVolume, AchiTask)
 pickup itemType = convertAtoB [Item Floor itemType] [Item Inventory itemType]
 
-queryPositive :: Key -> MapVolume
-queryPositive key = makeVolume [(key, Interval (IntValue 1) (IntValue maxBound))]
+queryPositive :: Key -> MapVolume -> MapVolume
+queryPositive key = queryRange key 1 maxBound
+
+queryRange :: Key -> Int -> Int -> MapVolume -> MapVolume
+queryRange key low high (MapVolume m) = Map.insert key value m & MapVolume
+    where value = Interval (IntValue low) (IntValue high)
 
 makeUnitVolume :: [(Key, Int)] -> MapVolume
 makeUnitVolume = makeVolume . map (second (Interval.unit . IntValue))
 
 makeVolume :: [(Key, Interval Value)] -> MapVolume
 makeVolume = MapVolume . Map.fromList
+
+startQuery :: MapVolume
+startQuery = MapVolume $ Map.empty
 
 addTask :: (MapVolume, AchiTask) -> Achikaps.Tasks -> Achikaps.Tasks
 addTask = RTree.insert 3
@@ -54,14 +61,37 @@ main = hspec $ do
       let tasks = RTree.NoRTree
             & addTask (convertInv [Pearl] [Metal] (5, 5))
             & addTask (convertInv [Meat, Metal] [Food] (9, 9))
-      let q = queryPositive (Item Inventory Metal)
+      let q = startQuery & queryPositive (Item Inventory Metal)
       length (RTree.query q tasks) `shouldBe` 1
 
     --it "matches nearby tasks before faraway tasks" $ do
 
-    it "scans for a viable task" $ do
+    it "matches no task (on the first attempt) if none falls within the x/y bounds" $ do
       let tasks = RTree.NoRTree
             & addTask (convertInv [Food] [Victory] (100, 100))
             & addTask (pickup Food (100, 9999))
-      let q = queryPositive (Item Inventory Victory)
+      let q = startQuery
+            & queryPositive (Item Inventory Victory)
+            & queryRange X (-50) 50
+            & queryRange Y (-50) 50
+      map snd (Achikaps.chooseTask q tasks) `shouldBe` []
+
+    it "matches a viable task right away if it falls within the x/y bounds" $ do
+      let tasks = RTree.NoRTree
+            & addTask (convertInv [Food] [Victory] (100, 100))
+            & addTask (pickup Food (100, 9999))
+      let q = startQuery
+            & queryPositive (Item Inventory Victory)
+            & queryRange X (-500) 500
+            & queryRange Y (-500) 500
+      map snd (Achikaps.chooseTask q tasks) `shouldBe` map snd [pickup Food (100, 9999)]
+
+    it "matches the most viable task by scanning" $ do
+      let tasks = RTree.NoRTree
+            & addTask (convertInv [Food] [Victory] (100, 100))
+            & addTask (pickup Food (100, 9999))
+      let q = startQuery
+            & queryPositive (Item Inventory Victory)
+            & queryRange X (-50) 50
+            & queryRange Y (-50) 50
       map snd (Achikaps.chooseTask q tasks) `shouldBe` map snd [pickup Food (100, 9999)]

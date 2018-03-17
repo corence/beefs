@@ -16,23 +16,28 @@ data ItemType
   | Metal
   | Debris
   | Gum
-  deriving (Show, Ord, Eq)
+  | Victory
+  deriving (Show, Eq, Ord)
+
+data ItemPosition
+  = Floor
+  | Inventory
+  deriving (Show, Eq, Ord)
 
 data Key
   = X
   | Y
   | Z
   | NumSlotsAvailable
-  | ItemAvailable ItemType
-  | ItemInInventory ItemType
-  deriving (Show, Ord, Eq)
+  | Item ItemPosition ItemType
+  deriving (Show, Eq, Ord)
 
 newtype AchiTask = AchiTask {
   name :: Text
   -- prereqs :: Ord ord => Map Key (Interval ord),
   -- ‎outcomes :: Map Key Value, -- these will actually be stored as intervals so let's encapsulate it with a setter
   -- actually, we don't store these anymore... now they're just a key in an RTree
-  }
+  } deriving Show
 
 data Value = IntValue Int | DoubleValue Double deriving (Show, Ord, Eq)
 newtype MapVolume = MapVolume (Map Key (Interval Value))

@@ -3,6 +3,7 @@ module Achikaps where
 
 import AchiTask(MapVolume, AchiTask)
 import RTree(RTree)
+import qualified RTree
 
 -- task: "i want to burn food at the Altar." (x: altar.x, y: altar.y, food: -1, divine favour: +1)
 -- task: "haul food to the altar." (x: altar.x, y: altar.y. Relative priorities inherited from the above)
@@ -13,3 +14,6 @@ import RTree(RTree)
 -- task: "create a new kitchen." (food +.1, civic +1, urgency -1, votes +1)
 
 type Tasks = RTree MapVolume AchiTask
+
+chooseTask :: MapVolume -> Tasks -> [(MapVolume, AchiTask)]
+chooseTask = RTree.query

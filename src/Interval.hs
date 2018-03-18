@@ -6,6 +6,9 @@ data Interval a = Interval a a
 instance Show a => Show (Interval a) where
   show (Interval a b) = "(" ++ show a ++ "-" ++ show b ++ ")"
 
+instance Eq a => Eq (Interval a) where
+  (Interval min0 max0) == (Interval min1 max1) = min0 == min1 && max0 == max1
+
 unit :: a -> Interval a
 unit a = Interval a a
 

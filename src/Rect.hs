@@ -7,7 +7,7 @@ import Interval(Interval)
 import qualified Volume
 import qualified Interval
 
-data Rect = Rect (Interval Double) (Interval Double) deriving (Show)
+data Rect = Rect (Interval Double) (Interval Double) deriving (Show, Eq)
 
 instance Volume Rect where
   intersects (Rect x1 y1) (Rect x2 y2) = Interval.intersects x1 x2 && Interval.intersects y1 y2

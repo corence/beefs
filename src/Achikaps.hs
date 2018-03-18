@@ -1,7 +1,8 @@
 
 module Achikaps where
 
-import AchiTask(MapVolume, AchiTask)
+import AchiTask(AchiTask)
+import AchiVolume
 import RTree(RTree)
 import qualified RTree
 
@@ -13,7 +14,7 @@ import qualified RTree
 -- task: "forage for berries at this berry bush out in woop woop." (x: bush.x, y: bush.y, inherited)
 -- task: "create a new kitchen." (food +.1, civic +1, urgency -1, votes +1)
 
-type Tasks = RTree MapVolume AchiTask
+type Tasks = RTree AchiVolume AchiTask
 
-chooseTask :: MapVolume -> Tasks -> [(MapVolume, AchiTask)]
+chooseTask :: AchiVolume -> Tasks -> [(AchiVolume, AchiTask)]
 chooseTask = RTree.query

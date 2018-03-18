@@ -9,49 +9,37 @@ import qualified Data.Map.Strict as Map
 import Data.Function((&))
 import qualified RTree
 import RTree(RTree)
-import Data.Bifunctor
 import qualified Interval
 import Interval(Interval(..))
 import Data.Tuple(swap)
 import Data.Monoid
 import qualified Data.Text as Text
+import AchiVolume
+import VolumeBuilder
 
 deriving instance Eq AchiTask
 
-convertAtoB :: [Key] -> [Key] -> (Int, Int) -> (MapVolume, AchiTask)
+convertAtoB :: [Key] -> [Key] -> (Double, Double) -> (AchiVolume, AchiTask)
 convertAtoB sources dests (x, y)
-  = swap (AchiTask (Text.pack $ "convert " <> show sources <> " to " <> show dests),
-     makeUnitVolume $
-       [(X, x), (Y, y)]
-       ++ map (\source -> (source, -1)) sources
-       ++ map (\dest -> (dest, 1)) dests)
+  = (makeUnitVolume prereqs outcomes,
+    AchiTask (Text.pack $ "convert " <> show sources <> " to " <> show dests))
+       where prereqs
+               =  map (\source -> (source, 1)) sources
+             outcomes
+               =  [(X, x), (Y, y)]
+               ++ map (\source -> (source, -1)) sources
+               ++ map (\dest -> (dest, 1)) dests
 
-convertInv :: [ItemType] -> [ItemType] -> (Int, Int) -> (MapVolume, AchiTask)
+convertInv :: [ItemType] -> [ItemType] -> (Double, Double) -> (AchiVolume, AchiTask)
 convertInv sourceTypes destTypes
   = convertAtoB
-      (map (\sourceType -> Item Inventory sourceType) sourceTypes)
-      (map (\destType -> Item Inventory destType) destTypes)
+      (map (Item Inventory) sourceTypes)
+      (map (Item Inventory) destTypes)
 
-pickup :: ItemType -> (Int, Int) -> (MapVolume, AchiTask)
+pickup :: ItemType -> (Double, Double) -> (AchiVolume, AchiTask)
 pickup itemType = convertAtoB [Item Floor itemType] [Item Inventory itemType]
 
-queryPositive :: Key -> MapVolume -> MapVolume
-queryPositive key = queryRange key 1 maxBound
-
-queryRange :: Key -> Int -> Int -> MapVolume -> MapVolume
-queryRange key low high (MapVolume m) = Map.insert key value m & MapVolume
-    where value = Interval (IntValue low) (IntValue high)
-
-makeUnitVolume :: [(Key, Int)] -> MapVolume
-makeUnitVolume = makeVolume . map (second (Interval.unit . IntValue))
-
-makeVolume :: [(Key, Interval Value)] -> MapVolume
-makeVolume = MapVolume . Map.fromList
-
-startQuery :: MapVolume
-startQuery = MapVolume $ Map.empty
-
-addTask :: (MapVolume, AchiTask) -> Achikaps.Tasks -> Achikaps.Tasks
+addTask :: (AchiVolume, AchiTask) -> Achikaps.Tasks -> Achikaps.Tasks
 addTask = RTree.insert 3
 
 main :: IO ()
@@ -61,7 +49,10 @@ main = hspec $ do
       let tasks = RTree.NoRTree
             & addTask (convertInv [Pearl] [Metal] (5, 5))
             & addTask (convertInv [Meat, Metal] [Food] (9, 9))
-      let q = startQuery & queryPositive (Item Inventory Metal)
+      let q = startQuery
+            & queryOutcomePositive (Item Inventory Metal)
+            & queryPrereqPositive (Item Inventory Pearl)
+            & queryPrereqPositive (Item Inventory Meat)
       length (RTree.query q tasks) `shouldBe` 1
 
     --it "matches nearby tasks before faraway tasks" $ do
@@ -71,9 +62,9 @@ main = hspec $ do
             & addTask (convertInv [Food] [Victory] (100, 100))
             & addTask (pickup Food (100, 9999))
       let q = startQuery
-            & queryPositive (Item Inventory Victory)
-            & queryRange X (-50) 50
-            & queryRange Y (-50) 50
+            & queryOutcomePositive (Item Inventory Victory)
+            & queryPrereqRange X (-50) 50
+            & queryPrereqRange Y (-50) 50
       map snd (Achikaps.chooseTask q tasks) `shouldBe` []
 
     it "matches a viable task right away if it falls within the x/y bounds" $ do
@@ -81,9 +72,9 @@ main = hspec $ do
             & addTask (convertInv [Food] [Victory] (100, 100))
             & addTask (pickup Food (100, 9999))
       let q = startQuery
-            & queryPositive (Item Inventory Victory)
-            & queryRange X (-500) 500
-            & queryRange Y (-500) 500
+            & queryOutcomePositive (Item Inventory Victory)
+            & queryPrereqRange X (-500) 500
+            & queryPrereqRange Y (-500) 500
       map snd (Achikaps.chooseTask q tasks) `shouldBe` map snd [pickup Food (100, 9999)]
 
     it "matches the most viable task by scanning" $ do
@@ -91,7 +82,7 @@ main = hspec $ do
             & addTask (convertInv [Food] [Victory] (100, 100))
             & addTask (pickup Food (100, 9999))
       let q = startQuery
-            & queryPositive (Item Inventory Victory)
-            & queryRange X (-50) 50
-            & queryRange Y (-50) 50
+            & queryOutcomePositive (Item Inventory Victory)
+            & queryPrereqRange X (-50) 50
+            & queryPrereqRange Y (-50) 50
       map snd (Achikaps.chooseTask q tasks) `shouldBe` map snd [pickup Food (100, 9999)]

@@ -40,13 +40,3 @@ newtype AchiTask = AchiTask {
   } deriving Show
 
 data Value = IntValue Int | DoubleValue Double deriving (Show, Ord, Eq)
-newtype MapVolume = MapVolume (Map Key (Interval Value))
-
-instance Volume MapVolume where
-  merge (MapVolume vol1) (MapVolume vol2) = Map.unionWith Interval.merge vol1 vol2 & MapVolume
-  intersects (MapVolume vol1) (MapVolume vol2)
-    = Map.intersectionWith Interval.intersects vol1 vol2 -- for all keys that exist in both Maps, create a new Map that records whether there's an intersection between the Intervals at that key
-    & Map.toList -- make it a list
-    & all snd -- make sure that every value from that intersected map is True
-  contains m1@(MapVolume vol1) m2@(MapVolume vol2)
-    = intersects m1 m2 && null (Map.difference vol2 vol1)

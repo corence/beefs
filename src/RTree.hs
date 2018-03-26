@@ -57,7 +57,7 @@ sortedInsertOn func a (b:bs)
 query :: Volume k => k -> RTree k v -> [(k, v)]
 query _ NoRTree = []
 query volume (RLeaf lVolume lValue)
-  = if volume == lVolume
+  = if Volume.intersects volume lVolume
       then [(lVolume, lValue)]
       else []
 query volume (RNode tVolume _ tChilds)

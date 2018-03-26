@@ -11,26 +11,29 @@ import Data.Function((&))
 
 data AchiVolume = AchiVolume {
   prerequisites :: Map Key (Interval Double),
-  outcomes :: Map Key (Interval Double)
+  availables :: Map Key (Interval Double)
   }
 
 instance Eq AchiVolume where
-  (==) (AchiVolume prereq1 outcomes1) (AchiVolume prereq2 outcomes2)
-    = Map.toList prereq1 == Map.toList prereq2
-    && Map.toList outcomes1 == Map.toList outcomes2
+  (==) (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
+    = Map.toList prereqs1 == Map.toList prereqs2
+    && Map.toList availables1 == Map.toList availables2
 
 instance Volume AchiVolume where
-  merge (AchiVolume prereq1 outcomes1) (AchiVolume prereq2 outcomes2)
+
+  merge (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
     = AchiVolume
-      (Map.unionWith Interval.merge prereq1 prereq2)
-      (Map.unionWith Interval.merge outcomes1 outcomes2)
-  intersects (AchiVolume queryPrereq queryOutcomes) (AchiVolume prereq outcomes)
-     = allRightKeysIntersect queryPrereq (Map.toList prereq)
-    && allRightKeysIntersect outcomes (Map.toList queryOutcomes)
-    where allRightKeysIntersect lefts = all (isGood lefts)
-          isGood lefts (key, interval) = maybe False (Interval.intersects interval) (Map.lookup key lefts)
+      (Map.unionWith Interval.merge prereqs1 prereqs2)
+      (Map.unionWith Interval.merge availables1 availables2)
+
+  (AchiVolume prereqs1 availables1) `intersects` (AchiVolume prereqs2 availables2)
+     = all (intersectsWith availables1) (Map.toList prereqs2)
+    && all (intersectsWith availables2) (Map.toList prereqs1)
+    where intersectsWith availables (key, interval) = maybe False (Interval.intersects interval) (Map.lookup key availables)
+
   {- This implementation is _probably_ less efficient because queryOutcomes and prereq are gonna have few keys.
      It's complicated and hard to read, too!
+     Oh and it's not up to date with the current behaviour of the method, so don't use it as-is.
   intersects (AchiVolume queryPrereq queryOutcomes) (AchiVolume prereq outcomes)
      = allLeftKeysIntersect (Map.toList prereq) (Map.toList queryPrereq)
     && allLeftKeysIntersect (Map.toList queryOutcomes) (Map.toList outcomes)
@@ -43,8 +46,9 @@ instance Volume AchiVolume where
             where (lk, li) = l
                   (rk, ri) = r
   -}
-  contains (AchiVolume prereq1 outcomes1) (AchiVolume prereq2 outcomes2)
-    = mapContains prereq1 prereq2 && mapContains outcomes1 outcomes2
+
+  contains (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
+    = mapContains prereqs1 prereqs2 && mapContains availables1 availables2
       where mapContains map1 map2
               = let combo = Map.intersectionWith Interval.contains map1 map2 & Map.toList & map snd in
                       all id combo

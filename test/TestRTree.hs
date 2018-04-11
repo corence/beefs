@@ -12,33 +12,13 @@ import qualified Interval
 import Interval(Interval(..))
 import System.Random
 import Rect
+import Arbs
 
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
 
 import AchiVolume
-import AchiTask(Key)
-
-instance Arbitrary Key where
-
-instance Arbitrary (Interval Double) where
-  arbitrary = do
-    x <- choose (-100, 50)
-    y <- choose (x, 100)
-    pure $ Interval x y
-
-instance Arbitrary Rect where
-  arbitrary = Rect <$> arbitrary <*> arbitrary
-  shrink (Rect x y) = Rect <$> shrink x <*> shrink y
-
-instance Arbitrary (Map Key (Interval Double)) where
-  arbitrary = Map.fromList <$> arbitrary
-  shrink = map Map.fromList . shrink . Map.toList
-
-instance Arbitrary AchiVolume where
-  arbitrary = AchiVolume <$> arbitrary <*> arbitrary
-  shrink (AchiVolume p a) = AchiVolume <$> shrink p <*> shrink a
 
 makeTree :: Volume k => [(k, v)] -> RTree k v
 makeTree = foldr (RTree.insert 3) RTree.NoRTree

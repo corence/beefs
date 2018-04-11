@@ -36,6 +36,7 @@ test-suite test-achivolume
   build-depends:       base
                      , spatial
                      , hspec
+                     , QuickCheck
                      , containers
                      , text
 
@@ -47,6 +48,7 @@ test-suite test-tasks
   build-depends:       base
                      , spatial
                      , hspec
+                     , QuickCheck
                      , containers
                      , text
 

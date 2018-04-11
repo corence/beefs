@@ -25,7 +25,21 @@ makeTree = foldr (RTree.insert 3) RTree.NoRTree
 
 main :: IO ()
 main = hspec $ do
-  describe "Rect RTree" $ do
+  describe "Interval Double" $ do
+    it "can only generate valid intervals" $
+      property $ \(Interval a z) -> (a :: Double) < z `shouldBe` True
+    it "can only generate valid rects" $
+      property $ \(Rect (Interval a b) (Interval c d)) -> do
+        a < b `shouldBe` True
+        c < d `shouldBe` True
+    it "can only generate valid rect lists" $
+      property $ \rects ->
+        let checkRect (Rect (Interval a b) (Interval c d))
+                = do
+                    a < b `shouldBe` True
+                    c < d `shouldBe` True
+          in mapM_ checkRect (rects :: [Rect])
+  describe "RTree Rect a" $ do
     it "contains n elements after inserting n things" $
       property $ \xs -> RTree.size (makeTree xs :: RTree Rect String) `shouldBe` length xs
     it "always makes sure parent node volumes contain child node volumes" $
@@ -34,9 +48,9 @@ main = hspec $ do
       property $ \rect entries -> do
         let rtree = makeTree entries :: RTree Rect Int
         let matchingEntries = filter (\(r, i) -> Volume.intersects rect r) entries
-        RTree.query rect rtree `shouldBe` matchingEntries
-
-  describe "AchiVolume RTree" $ do
+        RTree.query rect rtree `shouldMatchList` matchingEntries
+        
+  describe "RTree AchiVolume a" $ do
     it "can contain multiple unrelated volumes" $
       property $ \keys values -> do
         let entries = zip (List.nub keys) values :: [(AchiVolume, Int)]

@@ -42,6 +42,13 @@ instance Arbitrary (Interval Double) where
     pure $ Interval x y
   shrink (Interval x y) = Interval <$> shrink x <*> shrink y
 
+instance Arbitrary (Double, Double) where
+  arbitrary = do
+    x <- choose (-100, 50)
+    y <- choose (x, 100)
+    pure (x, y)
+  shrink (x, y) = (,) <$> shrink x <*> shrink y
+
 instance Arbitrary Rect where
   arbitrary = Rect <$> arbitrary <*> arbitrary
   shrink (Rect x y) = Rect <$> shrink x <*> shrink y

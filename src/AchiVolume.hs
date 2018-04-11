@@ -12,7 +12,7 @@ import Data.Function((&))
 data AchiVolume = AchiVolume {
   prerequisites :: Map Key (Interval Double),
   availables :: Map Key (Interval Double)
-  }
+  } deriving (Show)
 
 instance Eq AchiVolume where
   (==) (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
@@ -51,6 +51,6 @@ instance Volume AchiVolume where
     = mapContains prereqs1 prereqs2 && mapContains availables1 availables2
       where mapContains map1 map2
               = let combo = Map.intersectionWith Interval.contains map1 map2 & Map.toList & map snd in
-                      all id combo
+                      and combo
                       && length combo == Map.size map1
                       && length combo == Map.size map2

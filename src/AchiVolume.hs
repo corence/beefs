@@ -30,7 +30,7 @@ instance Volume AchiVolume where
               = Merge.merge
                 Merge.dropMissing
                 Merge.dropMissing
-                (Merge.zipWithMaybeMatched intersectIntervals)
+                (Merge.zipWithMatched (const Interval.merge))
                 prereqs1
                 prereqs2
             availables = Map.unionWith Interval.merge availables1 availables2

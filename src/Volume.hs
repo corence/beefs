@@ -9,6 +9,7 @@ class Eq a => Volume a where
 
   -- Intersects law:
   -- Intersect is commutative and transitive.
+  -- TODO: transitive? imo that isn't necessary
   intersects :: a -> a -> Bool
 
   -- Contains law:

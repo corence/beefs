@@ -3,36 +3,48 @@
 import AchiTask
 import AchiVolume
 import VolumeBuilder
-
 import Test.QuickCheck
-
 import qualified Volume
-
 import qualified Data.Text as Text
 import Data.Function((&))
-
 import Arbs
-
 import Test.Hspec
 import Test.Hspec.QuickCheck
+import qualified Data.Map.Strict as Map
+import Interval(Interval(..))
 
 main :: IO ()
 main = hspec $
   describe "AchiVolume" $ do
+    it "has no invalid ranges" $
+      property $ \(AchiVolume prereqs availables) ->
+        let validInterval (Interval a b) = a <= b
+            numInvalids = (Map.toList prereqs ++ Map.toList availables)
+                        & map snd
+                        & filter (not . validInterval)
+                        & length
+        in numInvalids `shouldBe` 0
     it "matches commutatively" $
       property $ \vol1 vol2 ->
         Volume.intersects vol1 vol2 `shouldBe` Volume.intersects vol2 (vol1 :: AchiVolume)
-    it "matches associatively" $
-      property $ \vol1 vol2 vol3 ->
-        let match12 = Volume.intersects vol1 vol2
-            match23 = Volume.intersects vol2 vol3
-            match13 = Volume.intersects vol1 (vol3 :: AchiVolume)
-        in match13 `shouldBe` match12 && match23
-    modifyMaxDiscardRatio (const 20) $
+    {-
+    modifyMaxSuccess (* 90) $
+      it "matches transitively" $
+        property $ \vol1 vol2 vol3 ->
+          let match12 = Volume.intersects vol1 vol2
+              match23 = Volume.intersects vol2 vol3
+              match13 = Volume.intersects vol1 (vol3 :: AchiVolume)
+          in if match12 && match23
+              then match13 `shouldBe` True
+              else pure ()
+    -}
+    modifyMaxSuccess (* 90) $
       it "anything that matches against a volume should match against its merged form too" $
-        property $ \vol1 vol2 vol3 -> do
+        property $ \vol1 vol2 vol3 ->
           let merged = Volume.merge vol1 vol2 :: AchiVolume
-          Volume.intersects vol1 vol3 ==> Volume.intersects merged vol3
+          in if Volume.intersects vol1 vol3
+              then Volume.intersects merged vol3 `shouldBe` True
+              else pure ()
     it "doesn't match if prereq key doesn't exist" $ do
       let taskVolume = emptyVolume
             & addUnitPrereq X 3

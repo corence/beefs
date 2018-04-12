@@ -51,6 +51,7 @@ main = hspec $ do
             & prereqPositive (Item Inventory Victory)
             & availableRange X (-500) 500
             & availableRange Y (-500) 500
+            & availablePositive (Item Inventory Food)
       map snd (Achikaps.chooseTask q tasks) `shouldBe` map snd [convertInv [Food] [Victory] (100, 100)]
 
     it "matches the most viable task by scanning" $ do

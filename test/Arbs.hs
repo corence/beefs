@@ -35,19 +35,21 @@ instance Arbitrary Key where
                       Victory
                       ]
 
+between :: Ord a => a -> a -> a -> Bool
+between high low candidate = candidate <= high && candidate >= low
+
 instance Arbitrary (Interval Double) where
   arbitrary = do
     x <- choose (-100, 50)
     y <- choose (x, 100)
     pure $ Interval x y
-  shrink (Interval x y) = Interval <$> shrink x <*> shrink y
-
-instance Arbitrary (Double, Double) where
-  arbitrary = do
-    x <- choose (-100, 50)
-    y <- choose (x, 100)
-    pure (x, y)
-  shrink (x, y) = (,) <$> shrink x <*> shrink y
+  shrink (Interval x y) =
+    (,) <$> shrink x <*> shrink y
+      & filter ((> (-100)) . fst)
+      & filter ((< 50) . fst)
+      & filter ((< 100) . snd)
+      & filter (uncurry (<))
+      & map (uncurry Interval)
 
 instance Arbitrary Rect where
   arbitrary = Rect <$> arbitrary <*> arbitrary

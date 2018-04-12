@@ -23,6 +23,9 @@ import AchiVolume
 makeTree :: Volume k => [(k, v)] -> RTree k v
 makeTree = foldr (RTree.insert 3) RTree.NoRTree
 
+switchie :: AchiVolume -> AchiVolume
+switchie (AchiVolume prereqs availables) = AchiVolume availables prereqs
+
 main :: IO ()
 main = hspec $ do
   describe "Interval Double" $ do
@@ -49,24 +52,33 @@ main = hspec $ do
         let rtree = makeTree entries :: RTree Rect Int
         let matchingEntries = filter (\(r, i) -> Volume.intersects rect r) entries
         RTree.query rect rtree `shouldMatchList` matchingEntries
-        
+
   describe "RTree AchiVolume a" $ do
     it "can contain multiple unrelated volumes" $
       property $ \keys values -> do
         let entries = zip (List.nub keys) values :: [(AchiVolume, Int)]
         let rtree = makeTree entries :: RTree AchiVolume Int
-        all ((== 1) . length . (`RTree.query` rtree) . fst) entries `shouldBe` True
+        -- all ((== 1) . length . (`RTree.query` rtree) . switchie . fst) entries `shouldBe` True
+        let expectedMatchResults = map (const True) entries
+        let matchResults
+              = entries
+              & map fst
+              & map switchie
+              & map (`RTree.query` rtree)
+              & map length
+              & map (> 0)
+        matchResults `shouldBe` expectedMatchResults
     it "can contain multiple overlapping volumes" $
       property $ \entries -> do
         let rtree = makeTree entries :: RTree AchiVolume Int
-        any (null . (`RTree.query` rtree) . fst) entries `shouldBe` False
+        any (null . (`RTree.query` rtree) . switchie . fst) entries `shouldBe` False
     it "contains n elements after inserting n things" $
       property $ \xs -> RTree.size (makeTree xs :: RTree AchiVolume String) `shouldBe` length xs
     it "contains the elements that it contains" $
       property $ \vol entries -> do
         let rtree = makeTree entries :: RTree AchiVolume Int
-        let matchingEntries = filter (\(v, i) -> Volume.intersects vol v) entries
-        RTree.query vol rtree `shouldBe` matchingEntries
+        let matchingEntries = filter (\(v, _) -> Volume.intersects vol v) entries
+        RTree.query vol rtree `shouldMatchList` matchingEntries
 
 
 rTreeDescendantsAreContained :: Volume k => RTree k v -> Bool

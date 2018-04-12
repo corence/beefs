@@ -14,6 +14,7 @@ import Data.Function((&))
 import Arbs
 
 import Test.Hspec
+import Test.Hspec.QuickCheck
 
 main :: IO ()
 main = hspec $
@@ -27,10 +28,11 @@ main = hspec $
             match23 = Volume.intersects vol2 vol3
             match13 = Volume.intersects vol1 (vol3 :: AchiVolume)
         in match13 `shouldBe` match12 && match23
-    it "anything that matches against a volume should match against its merged form too" $
-      property $ \vol1 vol2 vol3 -> do
-        let merged = Volume.merge vol1 vol2 :: AchiVolume
-        Volume.intersects merged vol3 `shouldBe` True
+    modifyMaxDiscardRatio (const 20) $
+      it "anything that matches against a volume should match against its merged form too" $
+        property $ \vol1 vol2 vol3 -> do
+          let merged = Volume.merge vol1 vol2 :: AchiVolume
+          Volume.intersects vol1 vol3 ==> Volume.intersects merged vol3
     it "doesn't match if prereq key doesn't exist" $ do
       let taskVolume = emptyVolume
             & addUnitPrereq X 3

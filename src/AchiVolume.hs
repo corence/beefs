@@ -3,9 +3,10 @@ module AchiVolume where
 
 import Volume
 import qualified Data.Map.Strict as Map
+import qualified Data.Map.Merge.Strict as Merge
 import Data.Map.Strict(Map)
 import qualified Interval
-import Interval(Interval)
+import Interval(Interval(..))
 import AchiTask(Key)
 import Data.Function((&))
 
@@ -21,10 +22,22 @@ instance Eq AchiVolume where
 
 instance Volume AchiVolume where
 
+  -- We need to obey the merge law:
   merge (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
-    = AchiVolume
-      (Map.unionWith Interval.merge prereqs1 prereqs2)
-      (Map.unionWith Interval.merge availables1 availables2)
+    = AchiVolume prereqs availables
+      where
+            prereqs
+              = Merge.merge
+                Merge.dropMissing
+                Merge.dropMissing
+                (Merge.zipWithMaybeMatched intersectIntervals)
+                prereqs1
+                prereqs2
+            availables = Map.unionWith Interval.merge availables1 availables2
+            intersectIntervals key (Interval a b) (Interval y z)
+              | b < y = Nothing
+              | z < a = Nothing
+              | otherwise = Just (Interval (max a y) (min b z))
 
   (AchiVolume prereqs1 availables1) `intersects` (AchiVolume prereqs2 availables2)
      = all (intersectsWith availables1) (Map.toList prereqs2)

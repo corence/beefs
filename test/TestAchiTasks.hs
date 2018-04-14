@@ -22,7 +22,7 @@ main :: IO ()
 main = hspec $ do
   describe "Achikaps" $ do
     it "matches against subsets of the tasks" $ do
-      let tasks = RTree.NoRTree
+      let tasks = RTree.create 3
             & addTask (convertInv [Pearl] [Metal] (5, 5))
             & addTask (convertInv [Meat, Metal] [Food] (9, 9))
       let q = startQuery
@@ -31,10 +31,10 @@ main = hspec $ do
             & availablePositive (Item Inventory Meat)
             & availableRange X (-99999999) 999999999
             & availableRange Y (-99999999) 999999999
-      length (RTree.query q tasks) `shouldBe` 1
+      length (RTree.lookup q tasks) `shouldBe` 1
 
     it "matches no task (on the first attempt) if none falls within the x/y bounds" $ do
-      let tasks = RTree.NoRTree
+      let tasks = RTree.create 3
             & addTask (convertInv [Food] [Victory] (100, 100))
             & addTask (pickup Food (100, 9999))
       let q = startQuery
@@ -44,7 +44,7 @@ main = hspec $ do
       map snd (Achikaps.chooseTask q tasks) `shouldBe` []
 
     it "matches a viable task right away if it falls within the x/y bounds" $ do
-      let tasks = RTree.NoRTree
+      let tasks = RTree.create 3
             & addTask (convertInv [Food] [Victory] (100, 100))
             & addTask (pickup Food (100, 9999))
       let q = startQuery
@@ -55,7 +55,7 @@ main = hspec $ do
       map snd (Achikaps.chooseTask q tasks) `shouldBe` map snd [convertInv [Food] [Victory] (100, 100)]
 
     it "matches the most viable task by scanning" $ do
-      let tasks = RTree.NoRTree
+      let tasks = RTree.create 3
             & addTask (convertInv [Food] [Victory] (100, 100))
             & addTask (pickup Food (100, 9999))
       let q = startQuery

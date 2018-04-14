@@ -11,9 +11,12 @@ import AchiTask(Key)
 import Data.Function((&))
 
 data AchiVolume = AchiVolume {
-  prerequisites :: Map Key (Interval Double),
-  availables :: Map Key (Interval Double)
+  aPrerequisites :: Map Key (Interval Double),
+  aAvailables :: Map Key (Interval Double)
   } deriving (Show)
+
+empty :: AchiVolume
+empty = AchiVolume Map.empty Map.empty
 
 instance Eq AchiVolume where
   (==) (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
@@ -22,7 +25,7 @@ instance Eq AchiVolume where
 
 instance Volume AchiVolume where
 
-  -- We need to obey the merge law:
+  -- We need to obey the merge law
   merge (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
     = AchiVolume prereqs availables
       where
@@ -34,10 +37,12 @@ instance Volume AchiVolume where
                 prereqs1
                 prereqs2
             availables = Map.unionWith Interval.merge availables1 availables2
-            intersectIntervals key (Interval a b) (Interval y z)
-              | b < y = Nothing
-              | z < a = Nothing
-              | otherwise = Just (Interval (max a y) (min b z))
+
+  extents (AchiVolume prereqs1 availables1) (AchiVolume prereqs2 availables2)
+    = AchiVolume prereqs availables
+      where
+            prereqs = Map.unionWith Interval.merge prereqs1 prereqs2
+            availables = Map.unionWith Interval.merge availables1 availables2
 
   (AchiVolume prereqs1 availables1) `intersects` (AchiVolume prereqs2 availables2)
      = all (intersectsWith availables1) (Map.toList prereqs2)

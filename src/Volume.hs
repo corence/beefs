@@ -7,6 +7,11 @@ class Eq a => Volume a where
   --  any q that would intersect with a, must also intersect with c
   merge :: a -> a -> a
 
+  -- Extents law:
+  -- Any value that exists in either of the inputs must be
+  -- within the range of the extents.
+  extents :: a -> a -> a
+
   -- Intersects law:
   -- Intersect is commutative and transitive.
   -- TODO: transitive? imo that isn't necessary

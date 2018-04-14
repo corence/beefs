@@ -38,7 +38,7 @@ pickup :: ItemType -> (Double, Double) -> (AchiVolume, AchiTask)
 pickup itemType = convertAtoB [Item Floor itemType] [Item Inventory itemType]
 
 addTask :: (AchiVolume, AchiTask) -> Achikaps.Tasks -> Achikaps.Tasks
-addTask = RTree.insert 3
+addTask = RTree.insert
 
 prereqPositive :: Key -> AchiVolume -> AchiVolume
 prereqPositive key = prereqRange key 1 bigDouble
@@ -62,10 +62,10 @@ makeVolume :: [(Key, Interval Double)] -> [(Key, Interval Double)] -> AchiVolume
 makeVolume p o = AchiVolume (Map.fromList p) (Map.fromList o)
 
 startQuery :: AchiVolume
-startQuery = AchiVolume Map.empty Map.empty
+startQuery = AchiVolume.empty
 
 emptyVolume :: AchiVolume
-emptyVolume = AchiVolume Map.empty Map.empty
+emptyVolume = AchiVolume.empty
 
 addUnitAvailable :: Key -> Double -> AchiVolume -> AchiVolume
 addUnitAvailable key value (AchiVolume p o)

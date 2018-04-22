@@ -1,52 +1,57 @@
-
 module Scanner where
 
-import Data.Bifunctor
 import Data.Function((&))
 import SimsKeys
+import qualified Interval
+import Interval(Interval)
+import qualified Task
+import Task(Task, Need)
+import qualified SolutionNode
+import SolutionNode(SolutionNode(..))
+import Data.Maybe(fromMaybe)
+import qualified ScanFactors
+import ScanFactors(ScanFactors)
+
+import qualified Data.Set as Set
+import Data.Set(Set)
 import qualified Data.Map.Strict as Map
-import Data.Map.Strict(Map)
-import qualified ScanNode
-import ScanNode(ScanNode(..))
+import Data.Map(Map)
 
- -- we want 1 or more Victory, as cheaply as possible
- -- 1: list all Tasks with Victory as a direct outcome
- -- 2: find the known Cost of each Task
- -- 3: add them all to a Heap, called the Open heap
- -- 4: for the cheapest one: if it's complete,
- --      then return it
- --      else add more entries to the current open heap, hierarchically
+findPredecessors :: ScanFactors -> SolutionNode -> [SolutionNode]
+findPredecessors factors successor
+  = SolutionNode.task successor
+  & Task.needs
+  & Set.toList
+  & map (solveNeed factors)
+  & concat
 
--- sample tasks:
+solveNeed :: ScanFactors -> Need -> [SolutionNode]
+solveNeed factors need
+  = if needCanBeSolvedDirectly factors need
+      then [solveNeedDirectly]
+      else solveNeedWithTasks
+  where solves need task = Set.member need (Task.outcomes task)
+        solveNeedWithTasks = ScanFactors.allTasks factors
+                           & filter (solves need)
+                           & map (solveNeedWithTask need)
+        solveNeedDirectly = DirectNode (costToSolveDirectly factors need)
 
--- Task
---   "bake"
--- prerequisites@{ Item Floor Oven, 1+ }
---               { Item Inventory ChoppedIngredients, 1+ }
---               { X, (22~52) }
---               { Y, (12~42) }
---   adjustments@{ Item Inventory Food, 1 }
---   assignments@{ X, 37 }
---   assignments@{ Y, 27 }
+solveNeedWithTask :: Need -> Task -> SolutionNode
+solveNeedWithTask
+  = task
+  & Task.needs
+  & Set.toList
 
--- Task
---   "pickup Food"
--- prerequisites@{ Item Floor a, 1+ }
---   adjustments@{ Item Inventory a, 1 }
+needCanBeSolvedDirectly :: ScanFactors -> Need -> Bool
+needCanBeSolvedDirectly factors need
+  = Map.member need (ScanFactors.directPrices factors)
 
-isComplete :: ScanNode -> Bool
+costToSolveDirectly :: ScanFactors -> Need -> Double
+costToSolveDirectly factors need
+  = fromMaybe
+      (error "but i can't solve that")
+      (Map.lookup need (ScanFactors.directPrices factors)) -- for now, we're pricing as if you always need to add one of the Need
 
-scan :: ScanNode -> [ScanNode]
-
-makeScanNode :: Map Key Double -> Task -> ScanNode
-makeScanNode availables task
-  = ScanNode {
-    task = task,
-    cost = 0,
-    subNodes = [],
-    unmetRequirements = Map.toList (Task.prerequisites task)
-  }
-
-consumeAvailables :: (Map Key Double, Map Key (Interval Double)) -> (Map Key Double, Map Key (Interval Double))
-consumeAvailables (availables, prereqs)
-  = consumeAvailablesFromLists (Map.toList availables, Map.toList prereqs)
+modifiesKey :: Key -> Task -> Bool
+modifiesKey key task
+  =  Set.member key (Task.outcomes task)

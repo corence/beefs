@@ -6,10 +6,14 @@ import Interval(Interval)
 
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
+import qualified Data.Set as Set
+import Data.Set(Set)
 
+type Need = Key
+
+-- simplified this for first prototype
 data Task = Task {
   name :: String,
-  prerequisites :: Map Key (Interval Double),
-  adjustments :: Map Key Double,
-  assignments :: Map Key Double
-  }
+  needs :: Set Need,
+  outcomes :: Set Key
+}

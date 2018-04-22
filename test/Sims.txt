@@ -1,0 +1,59 @@
+
+Bake:
+  prereq
+    1 oven
+    1 inventory -- prepped ingredients
+    position match oven
+    10 minutes
+  available
+    4 inventory -- food
+
+Order pizza:
+  prereq
+    1 phone
+    $40
+    position match phone
+    20 minutes
+  available
+    4 inventory -- food
+
+Microwave:
+  prereq
+    1 microwave
+    1 inventory -- prepped ingredients
+    position match microwave
+    30 seconds
+  available
+    4 inventory -- food
+
+Serve salad:
+  prereq
+    1 inventory -- prepped ingredients
+  available
+    3 inventory -- food
+
+Prep ingredients:
+  prereq
+    1 inventory -- ingredients
+    1 empty chopping board
+    position match chopping board
+    10 seconds
+  available
+    1 inventory -- prepped ingredients
+
+Buy ingredients:
+  prereq
+    1 fridge
+    $20
+    position match fridge
+    10 seconds
+  available
+    1 inventory -- ingredients
+
+Pickup item:
+  prereq
+    1 floor item - X
+    position match floor item
+    1 second
+  available
+    1 inventory item - X

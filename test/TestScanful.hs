@@ -20,19 +20,23 @@ main = hspec $ do
   describe "Scanful" $ do
     describe "findPrecursors" $ do
       it "should find a set of zero-cost tasks that might lead somewhere" $ do
-        let highTask = ScanFactors.allTasks standardFactors !! 4
+        let highTask = ScanFactors.allTasks standardFactors !! 2
             highNode = Scanful.taskToNode standardFactors highTask
             expectedTasks = [
-              Task "fly" (Set.fromList [X]) (Set.fromList [Y])
+              Task "fly" (Set.fromList []) (Set.fromList [Y])
               ]
-            expectedNodes = map (SolutionNode 0) expectedTasks
+            expectedNodes = map (SolutionNode 1000) expectedTasks
             solvedNodes = Scanful.findPredecessors standardFactors highNode
           in solvedNodes `shouldMatchList` expectedNodes
 
-    describe "findCompleteSolutions" $ do
-      it "should do thing" $ do
-        3 `shouldBe` 4
+      it "should not need any follow-on tasks if the needs can all be solved by direct costs" $ do
+        let highTask = ScanFactors.allTasks standardFactors !! 4
+            highNode = Scanful.taskToNode standardFactors highTask
+            solvedNodes = Scanful.findPredecessors standardFactors highNode
+          in solvedNodes `shouldMatchList` []
 
+
+    describe "findCompleteSolutions" $ do
       it "should scan for a subtask to complete the desired task" $ do
         let victory = Set.fromList [Victory]
         let factors

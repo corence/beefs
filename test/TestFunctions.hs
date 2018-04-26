@@ -41,6 +41,7 @@ bestTask :: ScanFactors -> Task
 bestTask factors
   = Scanful.findCompleteSolutions factors Victory
   & Map.toList
+  & map snd
+  & map SolutionNode.task
+  & filter (null . Task.needs)
   & head
-  & snd
-  & SolutionNode.task

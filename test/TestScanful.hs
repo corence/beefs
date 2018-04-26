@@ -27,40 +27,31 @@ main = hspec $ do
             = ScanFactors.empty
             & addTask (Task "go east" Set.empty (Set.fromList [X]))
             & addTask (Task "wrap around the world" (Set.fromList [X]) victory)
-      let bestNode
-            = Scanful.findCompleteSolutions factors Victory
-            & Map.toList
-            & head
-            & snd
-      Task.name (SolutionNode.task bestNode) `shouldBe` "go east"
+      Task.name (bestTask factors) `shouldBe` "go east"
 
     it "should prioritize a cheap task over an expensive task" $ do
       let outcomes = Set.fromList [Victory]
       let factors
             = ScanFactors.empty
-            & addCostedTask 1000 (Task "build pyramids" Set.empty outcomes)
-            & addCostedTask 12   (Task "drink water" Set.empty outcomes)
-            & addCostedTask 120  (Task "pump iron" Set.empty outcomes)
-      let bestNode
-            = Scanful.findCompleteSolutions factors Victory
-            & Map.toList
-            & head
-            & snd
-      Task.name (task bestNode) `shouldBe` "drink water"
+            & addTask (Task "build pyramids" (Set.fromList [Item Inventory Fridge]) outcomes)
+            & addTask (Task "drink water" (Set.fromList [Item Inventory Oven]) outcomes)
+            & addTask (Task "pump iron" (Set.fromList [Item Inventory Food]) outcomes)
+            & addPrice (Item Inventory Fridge) 9001
+            & addPrice (Item Inventory Oven) 5
+            & addPrice (Item Inventory Food) 1006
+      Task.name (bestTask factors) `shouldBe` "drink water"
 
     it "should prioritize a task with a cheap subtask over an expensive one" $ do
       let victory = Set.fromList [Victory]
       let factors
             = ScanFactors.empty
-            & addCostedTask 1000 (Task "fly" Set.empty (Set.fromList [Y]))
-            & addCostedTask 12   (Task "pump iron" Set.empty (Set.fromList [Item Inventory Fridge]))
-            & addCostedTask 120  (Task "gather food" Set.empty (Set.fromList [Item Inventory Food]))
+            & addPrice Y 1000
+            & addPrice (Item Inventory Fridge) 12
+            & addPrice (Item Inventory Food) 120
+            & addTask (Task "fly" Set.empty (Set.fromList [Y]))
+            & addTask (Task "pump iron" Set.empty (Set.fromList [Item Inventory Fridge]))
+            & addTask (Task "gather food" Set.empty (Set.fromList [Item Inventory Food]))
             & addTask (Task "enjoy being high" (Set.fromList [Y]) victory)
             & addTask (Task "enjoy being strong" (Set.fromList [Item Inventory Fridge]) victory)
             & addTask (Task "chow down" (Set.fromList [Item Inventory Food]) victory)
-      let bestNode
-            = Scanful.findCompleteSolutions factors Victory
-            & Map.toList
-            & head
-            & snd
-      Task.name (task bestNode) `shouldBe` "pump iron"
+      Task.name (bestTask factors) `shouldBe` "pump iron"

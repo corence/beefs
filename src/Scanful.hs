@@ -9,6 +9,8 @@ import Task(Task, Need)
 import Data.Maybe(fromMaybe)
 import qualified ScanFactors
 import ScanFactors(ScanFactors)
+import qualified SolutionNode
+import SolutionNode(SolutionNode(..))
 
 import qualified Data.Set as Set
 import Data.Set(Set)
@@ -16,11 +18,6 @@ import qualified Data.Map.Strict as Map
 import Data.Map(Map)
 import qualified Data.Map.Lazy as LMap
 import qualified Data.List as List
-
-data SolutionNode = SolutionNode {
-  cost :: Double,
-  task :: Maybe Task
-  }
 
 findCompleteSolutions :: ScanFactors -> Need -> LMap.Map Double SolutionNode
 findCompleteSolutions factors need

@@ -9,7 +9,12 @@ cabal-version:       >= 2
 
 library
   exposed-modules:
-                       Interval
+                       Interval,
+                       Scanful,
+                       Task,
+                       SolutionNode,
+                       SimsKeys,
+                       ScanFactors
   other-extensions:    OverloadedStrings
   build-depends:       base
                      , containers >= 0.5.9
@@ -28,6 +33,7 @@ test-suite test-scanful
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             TestScanful.hs
+  other-modules:       TestFunctions
   build-depends:       base
                      , beefs
                      , hspec

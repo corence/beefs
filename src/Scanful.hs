@@ -20,6 +20,8 @@ import qualified Data.Map.Lazy as LMap
 import qualified Data.List as List
 
 -- to find actual tasks ready to start, filter this map to only contain nodes with tasks with no needs
+-- TODO: this is totally fucked because it's hard-coded to loop 2 levels deep.
+-- needs to scan indefinitely deeply
 findCompleteSolutions :: ScanFactors -> Need -> LMap.Map Double SolutionNode
 findCompleteSolutions factors need
   = foldr solveStep LMap.empty terminalNodes

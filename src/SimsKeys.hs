@@ -22,4 +22,6 @@ data Key
   | Z
   | Victory
   | Item ItemPosition ItemType
+  | Cash
+  | Delay
   deriving (Show, Eq, Ord)

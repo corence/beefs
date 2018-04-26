@@ -1,4 +1,5 @@
 
+import Data.Bifunctor
 import Test.Hspec
 import Test.QuickCheck
 import qualified ScanFactors
@@ -45,29 +46,27 @@ main = hspec $ do
               & addTask (Task "wrap around the world" (Set.fromList [X]) victory)
         Task.name (bestTask factors) `shouldBe` "go east"
 
-      it "should prioritize a cheap task over an expensive task" $ do
+      it "should prioritize solutions" $ do
+        let bests = Scanful.findCompleteSolutions standardFactors Victory & Map.toList
+        let besties = map (second (Task.name . SolutionNode.task)) bests
+        besties `shouldBe` [(12.0, "pump iron"), (120.0, "gather food"), (1000.0, "fly")]
+
+      it "should go many levels deep, accumulating costs" $ do
         let outcomes = Set.fromList [Victory]
         let factors
               = ScanFactors.empty
-              & addTask (Task "build pyramids" (Set.fromList [Item Inventory Fridge]) outcomes)
-              & addTask (Task "drink water" (Set.fromList [Item Inventory Oven]) outcomes)
-              & addTask (Task "pump iron" (Set.fromList [Item Inventory Food]) outcomes)
-              & addPrice (Item Inventory Fridge) 9001
-              & addPrice (Item Inventory Oven) 5
-              & addPrice (Item Inventory Food) 1006
-        Task.name (bestTask factors) `shouldBe` "drink water"
+              & putTask "serve dinner" [Item Inventory Food] [Victory]
+              & putTask "bake"         [Item Inventory ChoppedIngredients, Item Floor Oven, Delay] [Item Inventory Food]
+              & putTask "grab chopped" [Item Floor ChoppedIngredients, Delay] [Item Inventory ChoppedIngredients]
+              & putTask "chop"         [Item Floor RawIngredients, Delay] [Item Floor ChoppedIngredients]
+              & putTask "drop ings"    [Item Inventory RawIngredients] [Item Floor RawIngredients]
+              & putTask "buy ings"     [Item Floor Fridge, Cash] [Item Inventory RawIngredients]
+              & addPrice (Item Floor Oven) 5
+              & addPrice (Item Floor Fridge) 5
+              & addPrice Delay 1
+              & addPrice Cash 3
+        let bestNode = Scanful.findCompleteSolutions factors Victory & Map.toList & head & snd
+        bestNode `shouldBe` SolutionNode 33 (makeTask "buy ings" [] [Item Inventory RawIngredients])
 
-      it "should prioritize a task with a cheap subtask over an expensive one" $ do
-        let victory = Set.fromList [Victory]
-        let factors
-              = ScanFactors.empty
-              & addPrice Y 1000
-              & addPrice (Item Inventory Fridge) 12
-              & addPrice (Item Inventory Food) 120
-              & addTask (Task "fly" Set.empty (Set.fromList [Y]))
-              & addTask (Task "pump iron" Set.empty (Set.fromList [Item Inventory Fridge]))
-              & addTask (Task "gather food" Set.empty (Set.fromList [Item Inventory Food]))
-              & addTask (Task "enjoy being high" (Set.fromList [Y]) victory)
-              & addTask (Task "enjoy being strong" (Set.fromList [Item Inventory Fridge]) victory)
-              & addTask (Task "chow down" (Set.fromList [Item Inventory Food]) victory)
-        Task.name (bestTask factors) `shouldBe` "pump iron"
+      it "should traverse between multiple branching options, accumulating costs" $ do
+        putStrLn "todo"

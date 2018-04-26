@@ -33,6 +33,14 @@ standardFactors
 addTask :: Task -> ScanFactors -> ScanFactors
 addTask task factors = factors { allTasks = task : allTasks factors }
 
+putTask :: String -> [Key] -> [Key] -> ScanFactors -> ScanFactors
+putTask name needs outcomes
+  = addTask (makeTask name needs outcomes)
+
+makeTask :: String -> [Key] -> [Key] -> Task
+makeTask name needs outcomes
+  = Task name (Set.fromList needs) (Set.fromList outcomes)
+
 addPrice :: Need -> Double -> ScanFactors -> ScanFactors
 addPrice need price factors
   = factors { directPrices = Map.insert need price (ScanFactors.directPrices factors) }

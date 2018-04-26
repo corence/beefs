@@ -17,32 +17,16 @@ import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
 import Data.Maybe(fromJust)
 
-standardFactors
-  = let victory = Set.fromList [Victory]
-    in
-          ScanFactors.empty
-        & addPrice Y 1000
-        & addPrice (Item Inventory Fridge) 12
-        & addPrice (Item Inventory Food) 120
-        & addTask (Task "fly" Set.empty (Set.fromList [Y]))
-        & addTask (Task "pump iron" Set.empty (Set.fromList [Item Inventory Fridge]))
-        & addTask (Task "gather food" Set.empty (Set.fromList [Item Inventory Food]))
-        & addTask (Task "enjoy being high" (Set.fromList [Y]) victory)
-        & addTask (Task "enjoy being strong" (Set.fromList [Item Inventory Fridge]) victory)
-        & addTask (Task "chow down" (Set.fromList [Item Inventory Food]) victory)
-
 main = hspec $ do
   describe "Scanful" $ do
     describe "findPrecursors" $ do
       it "should find a set of zero-cost tasks that might lead somewhere" $ do
-        let tasks = head $ ScanFactors.allTasks standardFactors
+        let highTask = ScanFactors.allTasks standardFactors !! 4
             expectedTasks = [
-              Task "enjoy being strong" (Set.fromList [Item Inventory Fridge]) (Set.fromList [Victory]),
-              Task "enjoy being strong" (Set.fromList [Item Inventory Fridge]) (Set.fromList [Victory]),
-              Task "enjoy being strong" (Set.fromList [Item Inventory Fridge]) (Set.fromList [Victory])
+              Task "fly" (Set.fromList [X]) (Set.fromList [Y])
               ]
             expectedNodes = map (SolutionNode 0 . Just) expectedTasks
-            solvedNodes = Scanful.findPrecursors standardFactors tasks
+            solvedNodes = Scanful.findPrecursors standardFactors highTask
           in solvedNodes `shouldMatchList` expectedNodes
 
     describe "findCompleteSolutions" $ do

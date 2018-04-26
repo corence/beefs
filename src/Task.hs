@@ -16,4 +16,4 @@ data Task = Task {
   name :: String,
   needs :: Set Need,
   outcomes :: Set Key
-}
+} deriving (Show, Eq)

@@ -12,3 +12,6 @@ data ScanFactors = ScanFactors {
   allTasks :: [Task],
   directPrices :: Map Need Double
 }
+
+empty :: ScanFactors
+empty = ScanFactors [] Map.empty

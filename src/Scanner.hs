@@ -16,6 +16,7 @@ import qualified Data.Set as Set
 import Data.Set(Set)
 import qualified Data.Map.Strict as Map
 import Data.Map(Map)
+import qualified Data.List as List
 
 findPredecessors :: ScanFactors -> SolutionNode -> [SolutionNode]
 findPredecessors factors successor

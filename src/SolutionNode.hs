@@ -10,7 +10,7 @@ import Data.Set(Set)
 data SolutionNode = TaskNode {
   task :: Task,
   successor :: SolutionNode,
-  closed :: Set String, -- names of  the tasks that are already in this chain
+  closed :: Set String, -- names of the tasks that are already in this chain
   needs :: [Need]
   }
   | DirectNode {

@@ -9,5 +9,5 @@ import Data.Set(Set)
 
 data SolutionNode = SolutionNode {
   cost :: Double,
-  task :: Maybe Task
+  task :: Task
   } deriving (Show, Eq)

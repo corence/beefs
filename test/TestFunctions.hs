@@ -14,7 +14,6 @@ import qualified Data.Set as Set
 import Data.Set(Set)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
-import Data.Maybe(fromJust)
 
 standardFactors :: ScanFactors
 standardFactors
@@ -45,4 +44,3 @@ bestTask factors
   & head
   & snd
   & SolutionNode.task
-  & fromJust

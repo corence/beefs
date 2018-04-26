@@ -5,7 +5,7 @@ import SimsKeys
 import qualified Interval
 import Interval(Interval)
 import qualified Task
-import Task(Task, Need)
+import Task(Task(..), Need)
 import Data.Maybe(fromMaybe)
 import qualified ScanFactors
 import ScanFactors(ScanFactors)
@@ -19,35 +19,43 @@ import Data.Map(Map)
 import qualified Data.Map.Lazy as LMap
 import qualified Data.List as List
 
+-- to find actual tasks ready to start, filter this map to only contain nodes with tasks with no needs
 findCompleteSolutions :: ScanFactors -> Need -> LMap.Map Double SolutionNode
 findCompleteSolutions factors need
-  = foldr solveStep LMap.empty terminalTasks
+  = foldr solveStep LMap.empty terminalNodes
   where terminalTasks = findSolutions factors need
+        terminalNodes = map (taskToNode factors) terminalTasks
         solveStep task results
-          = findPrecursors factors task
+          = findPredecessors factors task
           & map (\node -> (cost node, node))
           & addAll results
 
 addAll :: Ord k => LMap.Map k v -> [(k, v)] -> LMap.Map k v
 addAll = foldr (uncurry LMap.insert)
 
-findPrecursors :: ScanFactors -> Task -> [SolutionNode]
-findPrecursors factors nextTask
+findPredecessors :: ScanFactors -> SolutionNode -> [SolutionNode]
+findPredecessors factors successor
+  = SolutionNode.task successor
+  & Task.needs
+  & Set.toList
+  & map (findSolutions factors)
+  & concat
+  & map (taskToNode factors)
+
+canSolveANeedOf :: SolutionNode -> Task -> Bool
+canSolveANeedOf needyNode providingTask = undefined
+
+taskToNode :: ScanFactors -> Task -> SolutionNode
+taskToNode factors task
   = let (directNeeds, indirectNeeds)
-          = Task.needs nextTask
-          & Set.toList
-          & List.partition (needCanBeSolvedDirectly factors)
+          = Task.needs task
+          & Set.partition (needCanBeSolvedDirectly factors)
         directCost
           = directNeeds
-          & map (costToSolveDirectly factors)
+          & Set.map (costToSolveNeed factors)
           & sum
-  in
-    if null indirectNeeds
-      then [SolutionNode directCost Nothing]
-      else indirectNeeds
-        & map (findSolutions factors)
-        & concat
-        & map (SolutionNode directCost . Just)
+        newTask = task { needs = indirectNeeds }
+        in SolutionNode directCost newTask
 
 findSolutions :: ScanFactors -> Need -> [Task]
 findSolutions factors need
@@ -58,10 +66,10 @@ needCanBeSolvedDirectly :: ScanFactors -> Need -> Bool
 needCanBeSolvedDirectly factors need
   = Map.member need (ScanFactors.directPrices factors)
 
-costToSolveDirectly :: ScanFactors -> Need -> Double
-costToSolveDirectly factors need
+costToSolveNeed :: ScanFactors -> Need -> Double
+costToSolveNeed factors need
   = fromMaybe
-      (error "but i can't solve that")
+      (error "but i can't solve that directly")
       (Map.lookup need (ScanFactors.directPrices factors)) -- for now, we're pricing as if you always need to add one of the Need
 
 modifiesKey :: Key -> Task -> Bool

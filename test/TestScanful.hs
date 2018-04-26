@@ -15,18 +15,18 @@ import qualified Data.Set as Set
 import Data.Set(Set)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
-import Data.Maybe(fromJust)
 
 main = hspec $ do
   describe "Scanful" $ do
     describe "findPrecursors" $ do
       it "should find a set of zero-cost tasks that might lead somewhere" $ do
         let highTask = ScanFactors.allTasks standardFactors !! 4
+            highNode = Scanful.taskToNode standardFactors highTask
             expectedTasks = [
               Task "fly" (Set.fromList [X]) (Set.fromList [Y])
               ]
-            expectedNodes = map (SolutionNode 0 . Just) expectedTasks
-            solvedNodes = Scanful.findPrecursors standardFactors highTask
+            expectedNodes = map (SolutionNode 0) expectedTasks
+            solvedNodes = Scanful.findPredecessors standardFactors highNode
           in solvedNodes `shouldMatchList` expectedNodes
 
     describe "findCompleteSolutions" $ do

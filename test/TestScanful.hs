@@ -51,22 +51,51 @@ main = hspec $ do
         let besties = map (second (Task.name . SolutionNode.task)) bests
         besties `shouldBe` [(12.0, "pump iron"), (120.0, "gather food"), (1000.0, "fly")]
 
+      let deepTasks
+            = [ (0, makeTask "serve dinner" [Item Inventory Food] [Victory])
+              , (6, makeTask "bake"         [Item Inventory ChoppedIngredients, Item Floor Oven, Delay] [Item Inventory Food])
+              , (1, makeTask "grab chopped" [Item Floor ChoppedIngredients, Delay] [Item Inventory ChoppedIngredients])
+              , (1, makeTask "chop"         [Item Floor RawIngredients, Delay] [Item Floor ChoppedIngredients])
+              , (0, makeTask "drop ings"    [Item Inventory RawIngredients] [Item Floor RawIngredients])
+              , (8, makeTask "buy ings"     [Item Floor Fridge, Cash] [Item Inventory RawIngredients])
+              ]
+
+      let deepFactors
+            = foldr (addTask . snd) ScanFactors.empty deepTasks
+            & addPrice (Item Floor Oven) 5
+            & addPrice (Item Floor Fridge) 5
+            & addPrice Delay 1
+            & addPrice Cash 3
+
+      it "should be able to go n levels deep and ignore the others" $
+        property $ forAll (choose (0, length deepTasks - 1)) $ \index -> do
+          let expectedCost
+                = deepTasks
+                & drop index
+                & map fst
+                & sum
+          let expectedTask
+                = deepTasks !! (length deepTasks - 1)
+                & snd
+          let outcomes
+                = deepTasks !! index
+                & snd
+                & Task.outcomes
+          let outcome
+                = outcomes
+                & Set.toList
+                & head
+          let bestNode
+                = Scanful.findCompleteSolutions deepFactors outcome
+                & Map.toList
+                & head
+                & snd
+          bestNode `shouldBe` SolutionNode expectedCost expectedTask
+
       it "should go many levels deep, accumulating costs" $ do
         let outcomes = Set.fromList [Victory]
-        let factors
-              = ScanFactors.empty
-              & putTask "serve dinner" [Item Inventory Food] [Victory]
-              & putTask "bake"         [Item Inventory ChoppedIngredients, Item Floor Oven, Delay] [Item Inventory Food]
-              & putTask "grab chopped" [Item Floor ChoppedIngredients, Delay] [Item Inventory ChoppedIngredients]
-              & putTask "chop"         [Item Floor RawIngredients, Delay] [Item Floor ChoppedIngredients]
-              & putTask "drop ings"    [Item Inventory RawIngredients] [Item Floor RawIngredients]
-              & putTask "buy ings"     [Item Floor Fridge, Cash] [Item Inventory RawIngredients]
-              & addPrice (Item Floor Oven) 5
-              & addPrice (Item Floor Fridge) 5
-              & addPrice Delay 1
-              & addPrice Cash 3
-        let bestNode = Scanful.findCompleteSolutions factors Victory & Map.toList & head & snd
-        bestNode `shouldBe` SolutionNode 33 (makeTask "buy ings" [] [Item Inventory RawIngredients])
+        let bestNode = Scanful.findCompleteSolutions deepFactors Victory & Map.toList & head & snd
+        bestNode `shouldBe` SolutionNode 16 (makeTask "buy ings" [] [Item Inventory RawIngredients])
 
       it "should traverse between multiple branching options, accumulating costs" $ do
         putStrLn "todo"

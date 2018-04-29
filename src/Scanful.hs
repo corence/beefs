@@ -18,11 +18,14 @@ import qualified Data.Map.Strict as Map
 import Data.Map(Map)
 import qualified Data.Map.Lazy as LMap
 import qualified Data.List as List
+import Debug.Trace
+
+type LMap = LMap.Map
 
 -- to find actual tasks ready to start, filter this map to only contain nodes with tasks with no needs
 -- TODO: this is totally fucked because it's hard-coded to loop 2 levels deep.
 -- needs to scan indefinitely deeply
-findCompleteSolutions :: ScanFactors -> Need -> LMap.Map Double SolutionNode
+findCompleteSolutions :: ScanFactors -> Need -> LMap Double SolutionNode
 findCompleteSolutions factors need
   = foldr solveStep LMap.empty terminalNodes
   where terminalTasks = findSolutions factors need
@@ -31,6 +34,55 @@ findCompleteSolutions factors need
           = findPredecessors factors task
           & map (\node -> (cost node, node))
           & addAll results
+
+findAnswers :: ScanFactors -> Need -> [SolutionNode]
+findAnswers factors terminalNeed
+  = findAnswersRecursive factors (mappy, [])
+    where mappy
+            = Task "terminal" (Set.singleton terminalNeed) Set.empty
+            & SolutionNode (-999)
+            & (\node -> (-999, node))
+            & pure
+            & LMap.fromList
+
+fA :: ScanFactors -> Need -> [SolutionNode]
+fA factors terminalNeed
+  = fAR factors (mappy, [])
+    where mappy
+            = Task "terminal" (Set.singleton terminalNeed) Set.empty
+            & SolutionNode (-999)
+            & (\node -> (-999, node))
+            & pure
+            & LMap.fromList
+
+findAnswersRecursive :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> [SolutionNode]
+findAnswersRecursive factors (successors, answers)
+  | LMap.null successors = answers
+  | isComplete successor = findAnswersRecursive factors (otherSuccessors, successor : answers)
+  | otherwise = (addAll otherSuccessors predecessorEntries, answers) & findAnswersRecursive factors
+    where successor = LMap.findMin successors & snd
+          otherSuccessors = LMap.deleteMin successors
+          predecessors = findPredecessors factors successor
+          predecessorEntries = map (\node -> (SolutionNode.cost node, node)) predecessors
+
+fAR :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> [SolutionNode]
+fAR factors (successors, answers)
+  = case trace (show (successors, answers)) (findAnswersStep factors (successors, answers)) of
+      Nothing -> []
+      Just newy@(newSuccessors, newAnswers) -> fAR factors newy ++ answers
+
+findAnswersStep :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> Maybe (LMap Double SolutionNode, [SolutionNode])
+findAnswersStep factors (successors, answers)
+  | LMap.null successors = Nothing
+  | isComplete successor = Just (otherSuccessors, successor : answers)
+  | otherwise = Just (addAll otherSuccessors predecessorEntries, answers)
+    where successor = LMap.findMin successors & snd
+          otherSuccessors = LMap.deleteMin successors
+          predecessors = findPredecessors factors successor
+          predecessorEntries = map (\node -> (SolutionNode.cost node, node)) predecessors
+
+isComplete :: SolutionNode -> Bool
+isComplete = Set.null . Task.needs . SolutionNode.task
 
 addAll :: Ord k => LMap.Map k v -> [(k, v)] -> LMap.Map k v
 addAll = foldr (uncurry LMap.insert)

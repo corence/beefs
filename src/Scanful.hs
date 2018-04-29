@@ -40,8 +40,8 @@ findAnswers factors terminalNeed
   = findAnswersRecursive factors (mappy, [])
     where mappy
             = Task "terminal" (Set.singleton terminalNeed) Set.empty
-            & SolutionNode (-999)
-            & (\node -> (-999, node))
+            & SolutionNode 0
+            & (\node -> (0, node))
             & pure
             & LMap.fromList
 
@@ -50,8 +50,8 @@ fA factors terminalNeed
   = fAR factors (mappy, [])
     where mappy
             = Task "terminal" (Set.singleton terminalNeed) Set.empty
-            & SolutionNode (-999)
-            & (\node -> (-999, node))
+            & SolutionNode 0
+            & (\node -> (0, node))
             & pure
             & LMap.fromList
 
@@ -67,8 +67,8 @@ findAnswersRecursive factors (successors, answers)
 
 fAR :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> [SolutionNode]
 fAR factors (successors, answers)
-  = case trace (show (successors, answers)) (findAnswersStep factors (successors, answers)) of
-      Nothing -> []
+  = traceShow (successors, answers) $ case findAnswersStep factors (successors, answers) of
+      Nothing -> answers
       Just newy@(newSuccessors, newAnswers) -> fAR factors newy ++ answers
 
 findAnswersStep :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> Maybe (LMap Double SolutionNode, [SolutionNode])
@@ -78,8 +78,13 @@ findAnswersStep factors (successors, answers)
   | otherwise = Just (addAll otherSuccessors predecessorEntries, answers)
     where successor = LMap.findMin successors & snd
           otherSuccessors = LMap.deleteMin successors
-          predecessors = findPredecessors factors successor
-          predecessorEntries = map (\node -> (SolutionNode.cost node, node)) predecessors
+          predecessorEntries = findPredecessorsStep factors successor & map nodeToEntry
+          nodeToEntry node = (SolutionNode.cost node, node)
+
+findPredecessorsStep :: ScanFactors -> SolutionNode -> [SolutionNode]
+findPredecessorsStep factors successor = map (\node -> node { cost = newCost node }) predecessors
+    where predecessors = findPredecessors factors successor
+          newCost node = SolutionNode.cost node + SolutionNode.cost successor
 
 isComplete :: SolutionNode -> Bool
 isComplete = Set.null . Task.needs . SolutionNode.task

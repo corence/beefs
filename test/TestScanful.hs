@@ -16,6 +16,10 @@ import qualified Data.Set as Set
 import Data.Set(Set)
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
+import Debug.Trace
+import qualified Data.Map.Lazy as LMap
+
+type LMap = LMap.Map
 
 main = hspec $ do
   describe "Scanful" $ do
@@ -67,6 +71,11 @@ main = hspec $ do
             & addPrice Delay 1
             & addPrice Cash 3
 
+      -- findAnswersStep :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> Maybe (LMap Double SolutionNode, [SolutionNode])
+      --it "should step" $ do
+        --let nodes = LMap.fromList [()]
+        --findAnswersStep deepFactors
+
       it "should be able to go n levels deep and ignore the others" $
         property $ forAll (choose (0, length deepTasks - 1)) $ \index -> do
           let expectedCost
@@ -77,6 +86,7 @@ main = hspec $ do
           let expectedTask
                 = deepTasks !! (length deepTasks - 1)
                 & snd
+                & \task -> task { needs = Set.empty }
           let outcomes
                 = deepTasks !! index
                 & snd
@@ -86,16 +96,17 @@ main = hspec $ do
                 & Set.toList
                 & head
           let bestNode
-                = Scanful.findCompleteSolutions deepFactors outcome
-                & Map.toList
-                & head
-                & snd
+                = trace "------->>>>" outcome
+                & traceShowId
+                & Scanful.fA deepFactors
+                & traceShowId
+                & trace "<<<<--------" head
           bestNode `shouldBe` SolutionNode expectedCost expectedTask
 
       it "should go many levels deep, accumulating costs" $ do
         let outcomes = Set.fromList [Victory]
-        let bestNode = Scanful.findCompleteSolutions deepFactors Victory & Map.toList & head & snd
+        let bestNode = Scanful.fA deepFactors Victory & head
         bestNode `shouldBe` SolutionNode 16 (makeTask "buy ings" [] [Item Inventory RawIngredients])
 
       it "should traverse between multiple branching options, accumulating costs" $ do
-        putStrLn "todo"
+        "todo" `shouldBe` "implemented"

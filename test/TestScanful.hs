@@ -55,58 +55,122 @@ main = hspec $ do
         let besties = map (second (Task.name . SolutionNode.task)) bests
         besties `shouldBe` [(12.0, "pump iron"), (120.0, "gather food"), (1000.0, "fly")]
 
-      let deepTasks
-            = [ (0, makeTask "serve dinner" [Item Inventory Food] [Victory])
-              , (6, makeTask "bake"         [Item Inventory ChoppedIngredients, Item Floor Oven, Delay] [Item Inventory Food])
-              , (1, makeTask "grab chopped" [Item Floor ChoppedIngredients, Delay] [Item Inventory ChoppedIngredients])
-              , (1, makeTask "chop"         [Item Floor RawIngredients, Delay] [Item Floor ChoppedIngredients])
-              , (0, makeTask "drop ings"    [Item Inventory RawIngredients] [Item Floor RawIngredients])
-              , (8, makeTask "buy ings"     [Item Floor Fridge, Cash] [Item Inventory RawIngredients])
-              ]
+      describe "deep non-branching tasks" $ do
+        let deepTasks
+              = [ (0, makeTask "serve dinner" [Item Inventory Food] [Victory])
+                , (6, makeTask "bake"         [Item Inventory ChoppedIngredients, Item Floor Oven, Delay] [Item Inventory Food])
+                , (1, makeTask "grab chopped" [Item Floor ChoppedIngredients, Delay] [Item Inventory ChoppedIngredients])
+                , (1, makeTask "chop"         [Item Floor RawIngredients, Delay] [Item Floor ChoppedIngredients])
+                , (0, makeTask "drop ings"    [Item Inventory RawIngredients] [Item Floor RawIngredients])
+                , (8, makeTask "buy ings"     [Item Floor Fridge, Cash] [Item Inventory RawIngredients])
+                ]
 
-      let deepFactors
-            = foldr (addTask . snd) ScanFactors.empty deepTasks
-            & addPrice (Item Floor Oven) 5
-            & addPrice (Item Floor Fridge) 5
-            & addPrice Delay 1
-            & addPrice Cash 3
+        let deepFactors
+              = foldr (addTask . snd) ScanFactors.empty deepTasks
+              & addPrice (Item Floor Oven) 5
+              & addPrice (Item Floor Fridge) 5
+              & addPrice Delay 1
+              & addPrice Cash 3
 
-      -- findAnswersStep :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> Maybe (LMap Double SolutionNode, [SolutionNode])
-      --it "should step" $ do
-        --let nodes = LMap.fromList [()]
-        --findAnswersStep deepFactors
+        -- findAnswersStep :: ScanFactors -> (LMap Double SolutionNode, [SolutionNode]) -> Maybe (LMap Double SolutionNode, [SolutionNode])
+        --it "should step" $ do
+          --let nodes = LMap.fromList [()]
+          --findAnswersStep deepFactors
 
-      it "should be able to go n levels deep and ignore the others" $
-        property $ forAll (choose (0, length deepTasks - 1)) $ \index -> do
-          let expectedCost
-                = deepTasks
-                & drop index
-                & map fst
-                & sum
-          let expectedTask
-                = deepTasks !! (length deepTasks - 1)
-                & snd
-                & \task -> task { needs = Set.empty }
-          let outcomes
-                = deepTasks !! index
-                & snd
-                & Task.outcomes
-          let outcome
-                = outcomes
-                & Set.toList
-                & head
-          let bestNode
-                = trace "------->>>>" outcome
-                & traceShowId
-                & Scanful.fA deepFactors
-                & traceShowId
-                & trace "<<<<--------" head
-          bestNode `shouldBe` SolutionNode expectedCost expectedTask
+        it "should be able to go n levels deep and ignore the others" $
+          property $ forAll (choose (0, length deepTasks - 1)) $ \index -> do
+            let expectedCost
+                  = deepTasks
+                  & drop index
+                  & map fst
+                  & sum
+            let expectedTask
+                  = deepTasks !! (length deepTasks - 1)
+                  & snd
+                  & \task -> task { needs = Set.empty }
+            let outcomes
+                  = deepTasks !! index
+                  & snd
+                  & Task.outcomes
+            let outcome
+                  = outcomes
+                  & Set.toList
+                  & head
+            let bestNode
+                  = trace "------->>>>" outcome
+                  & traceShowId
+                  & Scanful.fA deepFactors
+                  & traceShowId
+                  & trace "<<<<--------" head
+            bestNode `shouldBe` SolutionNode expectedCost expectedTask
 
-      it "should go many levels deep, accumulating costs" $ do
-        let outcomes = Set.fromList [Victory]
-        let bestNode = Scanful.fA deepFactors Victory & head
-        bestNode `shouldBe` SolutionNode 16 (makeTask "buy ings" [] [Item Inventory RawIngredients])
+        it "should go many levels deep, accumulating costs" $ do
+          let bestNode = Scanful.fA deepFactors Victory & head
+          bestNode `shouldBe` SolutionNode 16 (makeTask "buy ings" [] [Item Inventory RawIngredients])
 
-      it "should traverse between multiple branching options, accumulating costs" $ do
-        "todo" `shouldBe` "implemented"
+      it "should do some really basic branching" $ do
+        let tasks
+              = [ makeTask "serve dinner" [Item Inventory Food, Delay] [Victory]
+                , makeTask "punch fridge" [Item Floor Fridge] [Victory]
+                , makeTask "buy oven"     [Cash] [Victory]
+                ]
+
+        let factors
+              = foldr addTask ScanFactors.empty tasks
+              & addPrice (Item Inventory Food) 15
+              & addPrice (Item Floor Fridge) 5
+              & addPrice Delay 1
+              & addPrice Cash 8
+
+        let bestNode = Scanful.fA factors Victory & head
+        bestNode `shouldBe` SolutionNode 5 (makeTask "punch fridge" [] [Victory])
+
+      it "should combine priced needs" $ do
+        let tasks = [ makeTask "serve dinner" [Item Inventory Food, Delay] [Victory] ]
+
+        let factors
+              = foldr addTask ScanFactors.empty tasks
+              & addPrice (Item Inventory Food) 15
+              & addPrice Delay 1
+
+        let bestNode = Scanful.fA factors Victory & head
+        bestNode `shouldBe` SolutionNode 16 (makeTask "serve dinner" [] [Victory])
+
+      describe "branching solutions" $ do
+        let branchingTasks
+              = [ (0, makeTask "serve dinner" [Item Inventory Food] [Victory])
+                , (6, makeTask "bake"         [Item Inventory ChoppedIngredients, Item Floor Oven, Delay] [Item Inventory Food])
+                , (1, makeTask "grab chopped" [Item Floor ChoppedIngredients, Delay] [Item Inventory ChoppedIngredients])
+                , (1, makeTask "chop"         [Item Floor RawIngredients, Delay] [Item Floor ChoppedIngredients])
+                , (0, makeTask "drop ings"    [Item Inventory RawIngredients] [Item Floor RawIngredients])
+                , (8, makeTask "buy ings"     [Item Floor Fridge, Cash] [Item Inventory RawIngredients])
+                ]
+
+        let branchingFactors
+              = foldr (addTask . snd) ScanFactors.empty branchingTasks
+              & addPrice (Item Floor Oven) 5
+              & addPrice (Item Floor Fridge) 5
+              & addPrice Delay 1
+              & addPrice Cash 3
+
+
+        it "should traverse between multiple branching options, accumulating costs" $ do
+          "todo" `shouldBe` "implemented"
+
+      it "should NOT prioritize solutions that solve multiple needs at once" $ do
+        let multiSolvingTasks
+              = [ makeTask "invent electricity" [Item Inventory Fridge, Item Inventory Oven, Item Inventory Food] [Victory]
+                , makeTask "buy starter kit" [Cash, Delay, X, Y] [Item Inventory Fridge, Item Inventory Oven, Item Inventory Food]
+                , makeTask "buy fridge" [Cash, Delay] [Item Inventory Fridge]
+                , makeTask "grow food" [Delay, X] [Item Inventory Food]
+                , makeTask "retrieve oven" [X, Y] [Item Inventory Oven]
+                ]
+        let multiSolvingFactors
+              = foldr addTask ScanFactors.empty multiSolvingTasks
+              & addPrice Cash 1
+              & addPrice Delay 1
+              & addPrice X 1
+              & addPrice Y 1
+
+        let bestNode = Scanful.fA multiSolvingFactors Victory & head
+        bestNode `shouldBe` SolutionNode 8 (makeTask "buy ings" [] [Item Inventory RawIngredients])
